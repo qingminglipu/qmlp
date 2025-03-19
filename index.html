@@ -89,6 +89,53 @@
         .animated-bg span:nth-child(18) { left: 45%; animation-duration: 16s; animation-delay: 8s; }
         .animated-bg span:nth-child(19) { left: 65%; animation-duration: 29s; animation-delay: 9s; }
         .animated-bg span:nth-child(20) { left: 50%; animation-duration: 28s; animation-delay: 10s; }
+
+        /* 新增的名人名言样式 */
+        #mini-quote {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            transition: all 0.5s ease;
+            overflow: hidden;
+            z-index: 3;
+        }
+
+        .quote-content {
+            position: relative;
+            height: 100%;
+        }
+
+        #mini-quote-text {
+            font-size: 14px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        #mini-quote-author {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            font-size: 12px;
+            color: #666;
+            margin: 5px 0 0;
+            font-style: italic;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        #mini-quote:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
     </style>
 </head>
 <body>
@@ -98,6 +145,15 @@
         <a href="https://qingminglipu.github.io/fliight-chess/" class="button">感情升温计</a>
         <a href="https://qingminglipu.github.io/painting/" class="button">绘画</a>
     </div>
+
+    <!-- 新增的名人名言模块 -->
+    <div id="mini-quote">
+        <div class="quote-content">
+            <p id="mini-quote-text"></p>
+            <p id="mini-quote-author"></p>
+        </div>
+    </div>
+
     <div class="animated-bg">
         <span></span>
         <span></span>
@@ -120,5 +176,39 @@
         <span></span>
         <span></span>
     </div>
+
+    <script>
+        // 迷你名人名言数据
+        const miniQuotes = [
+            { text: "千里之行，始于足下", author: "老子" },
+            { text: "Stay hungry, stay foolish.", author: "Steve Jobs" },
+            { text: "唯一不变的是变化本身", author: "赫拉克利特" },
+            { text: "仰天大笑出门去，我辈岂是蓬蒿人", author: "李白" },
+            { text: "人生如逆旅，我亦是行人", author: "苏轼" },
+            { text: "The best way to predict the future is to invent it.", author: "Alan Kay" },
+            { text: "生活就像一盒巧克力，你永远不知道下一颗是什么味道", author: "阿甘正传" },
+            { text: "代码如诗，简洁即美", author: "佚名" },
+            // 继续添加更多...
+        ];
+
+        const miniText = document.getElementById('mini-quote-text');
+        const miniAuthor = document.getElementById('mini-quote-author');
+
+        function updateMiniQuote() {
+            const currentQuote = miniQuotes[Math.floor(Math.random() * miniQuotes.length)];
+            miniText.style.opacity = 0;
+            miniAuthor.style.opacity = 0;
+            
+            setTimeout(() => {
+                miniText.textContent = `「${currentQuote.text}」`;
+                miniAuthor.textContent = `—— ${currentQuote.author}`;
+                miniText.style.opacity = 1;
+                miniAuthor.style.opacity = 1;
+            }, 500);
+        }
+
+        updateMiniQuote();
+        setInterval(updateMiniQuote, 15000); // 15秒切换
+    </script>
 </body>
 </html>
