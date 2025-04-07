@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dify聊天助手</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .header {
+            margin-bottom: 30px;
+        }
+        .description {
+            margin-top: 20px;
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        /* 聊天按钮样式 */
+        #chatbot-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #1C64F2;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: transform 0.2s;
+        }
+        #chatbot-button:hover {
+            transform: scale(1.1);
+        }
+        #chatbot-button::after {
+            content: "🤖";
+            font-size: 30px;
+            color: white;
+        }
+        
+        /* 聊天窗口样式 */
+        #chatbot-container {
+            position: fixed;
+            width: 350px;
+            height: 450px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            resize: both;
+            min-width: 300px;
+            min-height: 400px;
+            z-index: 1001;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        #chatbot-container.open {
+            display: flex;
+        }
+        
+        .chat-header {
+            padding: 12px;
+            background: #1C64F2;
+            color: white;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-control-btn {
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .chat-control-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        #chatbot-iframe {
+            flex-grow: 1;
+            border: none;
+            min-height: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>智能客服助手</h1>
+            <p>这是一个嵌入的Dify聊天助手，您可以在这里与智能客服助手进行交互。</p>
+        </div>
+        
+        <div class="description">
+            <p>请在右侧聊天窗口输入您的问题，智能客服助手将为您解答。</p>
+        </div>
+    </div>
+
+    <!-- 聊天窗口按钮 -->
+    <div id="chatbot-button"></div>
+
+    <!-- 聊天窗口容器 -->
+    <div id="chatbot-container">
+        <div class="chat-header" id="chat-header">
+            <span>智能助手</span>
+            <div class="chat-controls">
+                <div class="chat-control-btn" id="maximize-btn">□</div>
+                <div class="chat-control-btn" id="close-btn">×</div>
+            </div>
+        </div>
+        <iframe
+            id="chatbot-iframe"
+            src="https://udify.app/chat/ppY7PhT8HqBvJRV0"
+            allow="microphone">
+        </iframe>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const chatbotButton = document.getElementById('chatbot-button');
+        const chatbotContainer = document.getElementById('chatbot-container');
+        const chatHeader = document.getElementById('chat-header');
+        const closeBtn = document.getElementById('close-btn');
+        const maximizeBtn = document.getElementById('maximize-btn');
+        
+        // 拖动相关变量
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+        
+        // 初始位置
+        let posX = window.innerWidth - 350 - 20;
+        let posY = window.innerHeight - 450 - 20;
+        
+        // 切换聊天窗口显示
+        chatbotButton.addEventListener('click', () => {
+            if (chatbotContainer.classList.contains('open')) {
+                chatbotContainer.classList.remove('open');
+            } else {
+                chatbotContainer.classList.add('open');
+                updatePosition();
+            }
+        });
+        
+        // 关闭窗口
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            chatbotContainer.classList.remove('open');
+        });
+        
+        // 最大化/恢复窗口
+        maximizeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMaximize();
+        });
+        
+        // 拖动功能
+        chatHeader.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
+        
+        function startDrag(e) {
+            if (e.target !== chatHeader && !chatHeader.contains(e.target)) return;
+            
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            // 获取当前位置
+            initialLeft = parseInt(chatbotContainer.style.left) || posX;
+            initialTop = parseInt(chatbotContainer.style.top) || posY;
+            
+            // 禁用过渡效果
+            chatbotContainer.style.transition = 'none';
+            
+            // 防止文本选中
+            document.body.style.userSelect = 'none';
+        }
+        
+        function drag(e) {
+            if (!isDragging) return;
+            
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            let newLeft = initialLeft + dx;
+            let newTop = initialTop + dy;
+            
+            // 限制在视窗范围内
+            newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - chatbotContainer.offsetWidth));
+            newTop = Math.max(0, Math.min(newTop, window.innerHeight - chatbotContainer.offsetHeight));
+            
+            // 更新位置
+            chatbotContainer.style.left = newLeft + 'px';
+            chatbotContainer.style.top = newTop + 'px';
+            
+            // 更新位置变量
+            posX = newLeft;
+            posY = newTop;
+        }
+        
+        function stopDrag() {
+            isDragging = false;
+            chatbotContainer.style.transition = 'all 0.3s ease';
+            document.body.style.userSelect = '';
+        }
+        
+        function toggleMaximize() {
+            if (chatbotContainer.classList.contains('maximized')) {
+                // 恢复原大小
+                chatbotContainer.classList.remove('maximized');
+                chatbotContainer.style.width = '350px';
+                chatbotContainer.style.height = '450px';
+                updatePosition();
+            } else {
+                // 最大化
+                chatbotContainer.classList.add('maximized');
+                chatbotContainer.style.width = 'calc(100% - 40px)';
+                chatbotContainer.style.height = 'calc(100% - 40px)';
+                chatbotContainer.style.left = '20px';
+                chatbotContainer.style.top = '20px';
+            }
+        }
+        
+        function updatePosition() {
+            chatbotContainer.style.left = posX + 'px';
+            chatbotContainer.style.top = posY + 'px';
+        }
+        
+        // 窗口大小改变时调整位置
+        window.addEventListener('resize', () => {
+            if (!chatbotContainer.classList.contains('maximized')) {
+                posX = Math.min(posX, window.innerWidth - chatbotContainer.offsetWidth);
+                posY = Math.min(posY, window.innerHeight - chatbotContainer.offsetHeight);
+                updatePosition();
+            }
+        });
+    </script>
+</body>
+</html>
